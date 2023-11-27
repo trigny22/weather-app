@@ -38,6 +38,7 @@ cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
 retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
 openmeteo = openmeteo_requests.Client(session=retry_session)
 
+@st.cache
 def historical_data(latitude, longitude):
 
     # Define the parameters for the API request
@@ -86,6 +87,7 @@ def historical_data(latitude, longitude):
 
 ###
 
+@st.cache
 def weather_forecast(latitude, longitude):
     # Define the parameters for the API request
     url = "https://api.open-meteo.com/v1/forecast"
@@ -129,7 +131,7 @@ def weather_forecast(latitude, longitude):
 
 ###
 
-# Function to merge historical data and weather forecast
+@st.cache
 def merge_weather_data_for_capitals(capitals):
     all_data = []
 
