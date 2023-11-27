@@ -1,0 +1,3 @@
+streamlit
+matplotlib
+# Add other necessary packages
