@@ -9,12 +9,8 @@ import cartopy.io.shapereader as shpreader
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.patches as mpatches
-import numpy as np 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-# from slack_sdk import WebClient
-# from slack_sdk.errors import SlackApiError
-from flask import Flask, render_template
 import pandas as pd
 import matplotlib.pyplot as plt
 # import io
