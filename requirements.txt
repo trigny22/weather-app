@@ -1,3 +1,7 @@
 streamlit
 matplotlib
-# Add other necessary packages
+openmeteo_requests
+geopandas
+requests_cache
+pandas
+retry_requests
