@@ -305,7 +305,6 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 # Final_diff
 # Initialize Dash app
 
-@st.cache
 charts = plot_weather_charts('Germany')
 
 # Set up the Streamlit layout
