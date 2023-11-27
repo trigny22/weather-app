@@ -97,7 +97,7 @@ def weather_forecast(latitude, longitude):
         "latitude": latitude,
         "longitude": longitude,
         "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"],
-        "forecast_days": 16
+        "forecast_days": 14
     }
 
     # Make the API request
@@ -323,14 +323,14 @@ with col1:
 with col2:
     st.image('http://wxmaps.org/pix/prec4.png', caption='Precipitation Forecasts', use_column_width=True)
 
-st.dataframe(Final_diff, width=None, height=None, use_container_width=True)
+st.dataframe(Final_diff, use_container_width=True)
 
 chart_type = st.selectbox('Select chart type:', options=['Temperature', 'Wind', 'Precipitation'])
 
 chart_dict = {
     'Temperature': charts[0],
     'Wind': charts[1],
-    'Precipitation': charts[2]
+    'Precipitation': charts[2],
 }
 
 # Display the selected chart
