@@ -10,12 +10,19 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.patches as mpatches
 import numpy as np 
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+# from slack_sdk import WebClient
+# from slack_sdk.errors import SlackApiError
+from flask import Flask, render_template
+import pandas as pd
+import matplotlib.pyplot as plt
+# import io
+# import base64
+import plotly.graph_objs as go
+import streamlit as st
 
-import requests
-
-
+# import requests
 
 # Load Europe shapefile
 europe = gpd.read_file('NUTS_BN_20M_2021_3035.shp')
@@ -85,11 +92,12 @@ def historical_data(latitude, longitude):
 
 def weather_forecast(latitude, longitude):
     # Define the parameters for the API request
-    url = "https://api.open-meteo.com/v1/gfs"
+    url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": latitude,
         "longitude": longitude,
-        "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"]
+        "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"],
+        "forecast_days": 16
     }
 
     # Make the API request
@@ -174,42 +182,45 @@ def plot_weather_charts(country, merged_weather_data=merged_weather_data):
     forecast_country = country_data[country_data['Type'] == 'Forecast']
     historical_country = historical_country.sort_values(by='date')
     forecast_country = forecast_country.sort_values(by='date')
+    
+    charts = []
+ # Temperature forecast chart
+    fig_temp, ax_temp = plt.subplots()
+    ax_temp.plot(historical_country['date'], historical_country['temperature_2m'], label='1990-2020 Historical', color='orange')
+    ax_temp.plot(forecast_country['date'], forecast_country['temperature_2m'], label='Forecast', color='blue')
+    ax_temp.set_title(f'Temperature in {country}: Historical vs Forecast')
+    ax_temp.set_ylabel('Temperature (2m)')
+    ax_temp.legend()
+    charts.append(fig_temp)
 
-    # Temperature forecast
-    plt.figure(figsize=(14, 7))
-    plt.plot(historical_country['date'], historical_country['temperature_2m'], label='1990-2020 Historical', color='orange')
-    plt.plot(forecast_country['date'], forecast_country['temperature_2m'], label='Forecast', color='blue')
-    plt.ylabel('Temperature (2m)')
-    plt.title(f'Temperature in {country}: Historical vs Forecast')
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # Wind speed forecast chart
+    fig_wind, ax_wind = plt.subplots()
+    ax_wind.plot(historical_country['date'], historical_country['wind_speed_10m'], label='1990-2020 Historical', color='orange')
+    ax_wind.plot(forecast_country['date'], forecast_country['wind_speed_10m'], label='Forecast', color='blue')
+    ax_wind.set_title(f'Wind Speed in {country}: Historical vs Forecast')
+    ax_wind.set_ylabel('Wind Speed (10m)')
+    ax_wind.legend()
+    charts.append(fig_wind)
 
-    # Wind speed forecast
-    plt.figure(figsize=(14, 7))
-    plt.plot(historical_country['date'], historical_country['wind_speed_10m'], label='1990-2020 Historical', color='orange')
-    plt.plot(forecast_country['date'], forecast_country['wind_speed_10m'], label='Forecast', color='blue')
-    plt.ylabel('Wind Speed (10m)')
-    plt.title(f'Wind Speed in {country}: Historical vs Forecast')
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # Precipitation forecast chart
+    fig_precip, ax_precip = plt.subplots()
+    ax_precip.plot(historical_country['date'], historical_country['precipitation'], label='1990-2020 Historical', color='orange')
+    ax_precip.plot(forecast_country['date'], forecast_country['precipitation'], label='Forecast', color='blue')
+    ax_precip.set_title(f'Precipitation in {country}: Historical vs Forecast')
+    ax_precip.set_ylabel('Precipitation')
+    ax_precip.legend()
+    charts.append(fig_precip)
 
-    # Precipitation forecast (replace 'precipitation' with the correct column name)
-    plt.figure(figsize=(14, 7))
-    plt.plot(historical_country['date'], historical_country['precipitation'], label='1990-2020 Historical', color='orange')
-    plt.plot(forecast_country['date'], forecast_country['precipitation'], label='Forecast', color='blue')
-    plt.ylabel('Precipitation')
-    plt.title(f'Precipitation in {country}: Historical vs Forecast')
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # Improve date formatting
+    for ax in [ax_temp, ax_wind, ax_precip]:
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+
+    return charts
 
 ###germany forecast###
-plot_weather_charts("Germany")
+# plot_weather_charts("Germany")
 
 
 
@@ -265,38 +276,62 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 
 
 # Plotting the map
-fig, ax = plt.subplots(figsize=(22, 18))
-merged_europe_df.plot(ax=ax, color=merged_europe_df['temp_col'])
-ax.set_xlim(-23, 19)  # Longitudes for Europe roughly range from -10 to 30
-ax.set_ylim(35, 68)   # Latitudes for Europe roughly range from 34 to 72
+# fig, ax = plt.subplots(figsize=(22, 18))
+# merged_europe_df.plot(ax=ax, color=merged_europe_df['temp_col'])
+# ax.set_xlim(-23, 19)  # Longitudes for Europe roughly range from -10 to 30
+# ax.set_ylim(35, 68)   # Latitudes for Europe roughly range from 34 to 72
 
-# Annotate each country with its 'data_value' if the value is not NaN
-for idx, row in merged_europe_df.iterrows():
-    # Check if 'data_value' is NaN
-    if not pd.isna(row['temperature_diff']):
-        # Get the centroid of the country polygon
-        centroid = row.geometry.centroid
-        # Annotate the plot with the 'data_value'
-        plt.annotate(text=f"{row['temperature_diff']:.1f}", xy=(centroid.x, centroid.y),
-                     xytext=(3, 3), textcoords="offset points",
-                     ha='center', va='center', fontsize=15, color='white', 
-                     transform=ccrs.PlateCarree())
+# # Annotate each country with its 'data_value' if the value is not NaN
+# for idx, row in merged_europe_df.iterrows():
+#     # Check if 'data_value' is NaN
+#     if not pd.isna(row['temperature_diff']):
+#         # Get the centroid of the country polygon
+#         centroid = row.geometry.centroid
+#         # Annotate the plot with the 'data_value'
+#         plt.annotate(text=f"{row['temperature_diff']:.1f}", xy=(centroid.x, centroid.y),
+#                      xytext=(3, 3), textcoords="offset points",
+#                      ha='center', va='center', fontsize=15, color='white', 
+#                      transform=ccrs.PlateCarree())
 
-# Turn off the axis display
-ax.set_axis_off()
+# # Turn off the axis display
+# ax.set_axis_off()
 
-plt.show()
+# plt.show()
 
 ###
 # Getting things automated into slack
 
-client = WebClient(token="MWNlY2M5OGItNTg5Ny00YmI5LTgyMWQtNDczM2VhZDVjNDg4")
+# client = WebClient(token="MWNlY2M5OGItNTg5Ny00YmI5LTgyMWQtNDczM2VhZDVjNDg4")
 
-url_temp = 'http://wxmaps.org/pix/temp4.png'
-url_precip = 'http://wxmaps.org/pix/prec4.png'
+# url_temp = 'http://wxmaps.org/pix/temp4.png'
+# url_precip = 'http://wxmaps.org/pix/prec4.png'
 
-plot_weather_charts("Germany")
-Final_diff
+# plot_weather_charts("Germany")
+# Final_diff
+# Initialize Dash app
 
+charts = plot_weather_charts('Germany')
 
+# Set up the Streamlit layout
+st.title('Weather-App Dashboard')
 
+# Display images in columns
+col1, col2 = st.columns(2)
+with col1:
+    st.image('http://wxmaps.org/pix/temp4.png', caption='Temperature Forecasts', use_column_width=True)
+
+with col2:
+    st.image('http://wxmaps.org/pix/prec4.png', caption='Precipitation Forecasts', use_column_width=True)
+
+st.dataframe(Final_diff, width=None, height=None, use_container_width=True)
+
+chart_type = st.selectbox('Select chart type:', options=['Temperature', 'Wind', 'Precipitation'])
+
+chart_dict = {
+    'Temperature': charts[0],
+    'Wind': charts[1],
+    'Precipitation': charts[2]
+}
+
+# Display the selected chart
+st.plotly_chart(chart_dict[chart_type], use_container_width=True)
