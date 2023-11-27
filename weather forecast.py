@@ -1,0 +1,302 @@
+from matplotlib import pyplot as plt
+import openmeteo_requests
+import geopandas as gpd
+import requests_cache
+import pandas as pd
+from retry_requests import retry
+import matplotlib.pyplot as plt
+import cartopy.io.shapereader as shpreader
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import matplotlib.patches as mpatches
+import numpy as np 
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+
+import requests
+
+
+
+# Load Europe shapefile
+europe = gpd.read_file('NUTS_BN_20M_2021_3035.shp')
+
+european_capitals = {
+    "France": {"Paris": (48.8566, 2.3522)},
+    "Germany": {"Berlin": (52.5200, 13.4050)},
+    "Spain": {"Madrid": (40.4168, -3.7038)},
+    "United Kingdom": {"London": (51.5074, -0.1278)},
+    "Iceland": {"Reykjavik": (64.1466, -21.9426)},
+    "Sweden": {"Stockholm": (59.3293, 18.0686)},
+    # Add other European capitals as needed
+}
+
+# Setup the Open-Meteo API client
+cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
+retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
+openmeteo = openmeteo_requests.Client(session=retry_session)
+
+def historical_data(latitude, longitude):
+
+    # Define the parameters for the API request
+    url = "https://archive-api.open-meteo.com/v1/archive"
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "start_date": "1980-01-01",
+        "end_date": "2019-12-31",
+        "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"]
+    }
+
+    # Make the API request
+    responses = openmeteo.weather_api(url, params=params)
+
+    # Process the first location
+    response = responses[0]
+
+    # Process hourly data
+    hourly = response.Hourly()
+    hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
+    hourly_precipitation = hourly.Variables(1).ValuesAsNumpy()
+    hourly_wind_speed_10m = hourly.Variables(2).ValuesAsNumpy()
+
+    # Create a DataFrame from the hourly data
+    historical = {
+        "date": pd.date_range(
+            start=pd.to_datetime(hourly.Time(), unit="s"),
+            end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
+            freq=pd.Timedelta(seconds=hourly.Interval()),
+            inclusive="left"
+        ),
+        "temperature_2m": hourly_temperature_2m,
+        "precipitation": hourly_precipitation,
+        "wind_speed_10m": hourly_wind_speed_10m
+    }
+
+    historical_df = pd.DataFrame(data=historical)
+    historical_df['date'] = pd.to_datetime(historical_df['date'])
+    historical_df['date'] = historical_df['date'].dt.strftime('%m-%d %H:00:00')
+
+    # Calculate the average for each hour
+    average_df = historical_df.groupby('date').mean().reset_index()
+
+    return average_df
+
+###
+
+def weather_forecast(latitude, longitude):
+    # Define the parameters for the API request
+    url = "https://api.open-meteo.com/v1/gfs"
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"]
+    }
+
+    # Make the API request
+    responses = openmeteo.weather_api(url, params=params)
+
+    # Process the first location
+    response = responses[0]
+
+    # Process hourly data
+    hourly = response.Hourly()
+    hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
+    hourly_precipitation = hourly.Variables(1).ValuesAsNumpy()
+    hourly_wind_speed_10m = hourly.Variables(2).ValuesAsNumpy()
+
+    # Create a DataFrame from the hourly data
+    hourly_data = {
+        "date": pd.date_range(
+            start=pd.to_datetime(hourly.Time(), unit="s"),
+            end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
+            freq=pd.Timedelta(seconds=hourly.Interval()),
+            inclusive="left"
+        ),
+        "temperature_2m": hourly_temperature_2m,
+        "precipitation": hourly_precipitation,
+        "wind_speed_10m": hourly_wind_speed_10m
+    }
+
+    hourly_dataframe = pd.DataFrame(data=hourly_data)
+    hourly_dataframe['date'] = pd.to_datetime(hourly_dataframe['date'])
+    hourly_dataframe['date'] = hourly_dataframe['date'].dt.strftime('%m-%d %H:00:00')
+
+    return hourly_dataframe
+
+###
+
+# Function to merge historical data and weather forecast
+def merge_weather_data_for_capitals(capitals):
+    all_data = []
+
+    for country, capital_info in capitals.items():
+        for capital, coords in capital_info.items():
+            latitude, longitude = coords
+            
+                        # Fetch weather forecast data
+            forecast_df = weather_forecast(latitude, longitude)
+            forecast_df['Capital'] = capital
+            forecast_df['Country'] = country
+            forecast_df['Type'] = 'Forecast'
+
+            # Fetch historical data
+            historical_df = historical_data(latitude, longitude)
+            historical_df['Capital'] = capital
+            historical_df['Country'] = country
+            historical_df['Type'] = 'Historical'
+            historical_df = historical_df[historical_df['date'].isin(forecast_df['date'])]
+
+            # Concatenate historical and forecast data
+            combined_df = pd.concat([historical_df, forecast_df])
+
+            all_data.append(combined_df)
+
+    # Merge all data into a single dataframe
+    merged_df = pd.concat(all_data)
+
+    return merged_df
+
+# Call the function with the european_capitals dictionary
+merged_weather_data = merge_weather_data_for_capitals(european_capitals)
+merged_weather_data['date'] = pd.to_datetime(merged_weather_data['date'], format='%m-%d %H:%M:%S')
+merged_weather_data['date'] = merged_weather_data['date'].apply(lambda dt: dt.replace(year=2023))
+
+
+
+# Example: Display the first few rows of the merged dataframe
+print(merged_weather_data.head())
+
+
+def plot_weather_charts(country, merged_weather_data=merged_weather_data):
+    # Filter the merged dataframe for the specified country
+    country_data = merged_weather_data[merged_weather_data['Country'] == country]
+    historical_country = country_data[country_data['Type'] == 'Historical']
+    forecast_country = country_data[country_data['Type'] == 'Forecast']
+    historical_country = historical_country.sort_values(by='date')
+    forecast_country = forecast_country.sort_values(by='date')
+
+    # Temperature forecast
+    plt.figure(figsize=(14, 7))
+    plt.plot(historical_country['date'], historical_country['temperature_2m'], label='1990-2020 Historical', color='orange')
+    plt.plot(forecast_country['date'], forecast_country['temperature_2m'], label='Forecast', color='blue')
+    plt.ylabel('Temperature (2m)')
+    plt.title(f'Temperature in {country}: Historical vs Forecast')
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    # Wind speed forecast
+    plt.figure(figsize=(14, 7))
+    plt.plot(historical_country['date'], historical_country['wind_speed_10m'], label='1990-2020 Historical', color='orange')
+    plt.plot(forecast_country['date'], forecast_country['wind_speed_10m'], label='Forecast', color='blue')
+    plt.ylabel('Wind Speed (10m)')
+    plt.title(f'Wind Speed in {country}: Historical vs Forecast')
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    # Precipitation forecast (replace 'precipitation' with the correct column name)
+    plt.figure(figsize=(14, 7))
+    plt.plot(historical_country['date'], historical_country['precipitation'], label='1990-2020 Historical', color='orange')
+    plt.plot(forecast_country['date'], forecast_country['precipitation'], label='Forecast', color='blue')
+    plt.ylabel('Precipitation')
+    plt.title(f'Precipitation in {country}: Historical vs Forecast')
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+###germany forecast###
+plot_weather_charts("Germany")
+
+
+
+###
+def value_to_color(value):
+    if value < -2.5:
+        return '#3f00ff'  # darker shade of blue
+    elif -2.5 <= value < -1.5:
+        return '#0000ff'  # blue
+    elif -1.5 <= value < -0.5:
+        return '#4169e1'  # royal blue
+    elif -0.5 <= value < 0.5:
+        return '#d3d3d3'  # light grey
+    elif 0.5 <= value < 1.5:
+        return '#ff6666'  # light red
+    elif 1.5 <= value < 2.5:
+        return '#ff0000'  # red
+    else:
+        return '#8b0000'  # dark red
+    
+
+# Group by 'Country' and 'Type' and then calculate the mean
+grouped_data = merged_weather_data.groupby(['Country', 'Type']).mean(numeric_only=True).reset_index()
+
+# Pivot this grouped data to have 'Historical' and 'Forecast' as columns
+pivot_df = grouped_data.pivot(index='Country', columns='Type', values=['temperature_2m', 'wind_speed_10m', 'precipitation'])
+
+# Calculate the differences
+pivot_df['temperature_diff'] = pivot_df['temperature_2m']['Forecast'] - pivot_df['temperature_2m']['Historical']
+pivot_df['wind_diff'] = pivot_df['wind_speed_10m']['Forecast'] - pivot_df['wind_speed_10m']['Historical']
+pivot_df['precipitation_diff'] = pivot_df['precipitation']['Forecast'] - pivot_df['precipitation']['Historical']
+
+# Reset index to make 'Country' a column again and filter only the necessary columns
+diff_df = pivot_df.reset_index()[['Country', 'temperature_diff', 'wind_diff', 'precipitation_diff']]
+
+diff_df.columns = ['Country', 'temperature_diff', 'wind_diff', 'precipitation_diff']  # Flatten the MultiIndex columns
+diff_df = diff_df.round(1)
+Final_diff = diff_df.copy()
+
+diff_df['temp_col'] = diff_df['temperature_diff'].apply(value_to_color)
+diff_df['wind_col'] = diff_df['wind_diff'].apply(value_to_color)
+diff_df['precipitation_col'] = diff_df['precipitation_diff'].apply(value_to_color)
+###
+
+europe = europe.rename(columns={'NAME_ENGL': 'Country'})
+
+merged_europe_df = europe.merge(diff_df, left_on='Country', right_on='Country', how='left')
+cols_to_replace_nan = ['temp_col', 'wind_col', 'precipitation_col']
+merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fillna('#d3d3d3')
+
+
+###
+
+
+# Plotting the map
+fig, ax = plt.subplots(figsize=(22, 18))
+merged_europe_df.plot(ax=ax, color=merged_europe_df['temp_col'])
+ax.set_xlim(-23, 19)  # Longitudes for Europe roughly range from -10 to 30
+ax.set_ylim(35, 68)   # Latitudes for Europe roughly range from 34 to 72
+
+# Annotate each country with its 'data_value' if the value is not NaN
+for idx, row in merged_europe_df.iterrows():
+    # Check if 'data_value' is NaN
+    if not pd.isna(row['temperature_diff']):
+        # Get the centroid of the country polygon
+        centroid = row.geometry.centroid
+        # Annotate the plot with the 'data_value'
+        plt.annotate(text=f"{row['temperature_diff']:.1f}", xy=(centroid.x, centroid.y),
+                     xytext=(3, 3), textcoords="offset points",
+                     ha='center', va='center', fontsize=15, color='white', 
+                     transform=ccrs.PlateCarree())
+
+# Turn off the axis display
+ax.set_axis_off()
+
+plt.show()
+
+###
+# Getting things automated into slack
+
+client = WebClient(token="MWNlY2M5OGItNTg5Ny00YmI5LTgyMWQtNDczM2VhZDVjNDg4")
+
+url_temp = 'http://wxmaps.org/pix/temp4.png'
+url_precip = 'http://wxmaps.org/pix/prec4.png'
+
+plot_weather_charts("Germany")
+Final_diff
+
+
+
