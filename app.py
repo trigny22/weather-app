@@ -355,8 +355,7 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 st.title('Weather-App Dashboard')
 
 # Get today's date in the format of 'YYYYMMDD'
-todays_date = datetime.now().strftime('%Y%m%d')
-
+todays_date =  str(datetime.date.today().strftime("%Y%m%d"))
 # Format the URL with today's date
 image_url1 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{todays_date}06/gfs_T2ma_eu_1.png'
 image_url2 = f'https://www.tropicaltidbits.com/analysis/models/?model=gfs&region=eu&pkg=mslp_pwata&runtime={todays_date}06&fh=6'
