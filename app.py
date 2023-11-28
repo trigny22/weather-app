@@ -291,9 +291,9 @@ grouped_data = merged_weather_data.groupby(['country', 'type']).mean(numeric_onl
 pivot_df = grouped_data.pivot(index='country', columns='type', values=['temperature_2m', 'wind_speed_10m', 'precipitation'])
 
 # Calculate the differences
-pivot_df['temperature_diff'] = pivot_df['temperature_2m']['Forecast'] - pivot_df['temperature_2m']['Historical']
-pivot_df['wind_diff'] = pivot_df['wind_speed_10m']['Forecast'] - pivot_df['wind_speed_10m']['Historical']
-pivot_df['precipitation_diff'] = pivot_df['precipitation']['Forecast'] - pivot_df['precipitation']['Historical']
+pivot_df['temperature_diff'] = pivot_df['temperature_2m']['forecast'] - pivot_df['temperature_2m']['historical']
+pivot_df['wind_diff'] = pivot_df['wind_speed_10m']['forecast'] - pivot_df['wind_speed_10m']['historical']
+pivot_df['precipitation_diff'] = pivot_df['precipitation']['forecast'] - pivot_df['precipitation']['historical']
 
 # Reset index to make 'Country' a column again and filter only the necessary columns
 diff_df = pivot_df.reset_index()[['country', 'temperature_diff', 'wind_diff', 'precipitation_diff']]
@@ -309,7 +309,7 @@ diff_df['precipitation_col'] = diff_df['precipitation_diff'].apply(value_to_colo
 
 europe = europe.rename(columns={'NAME_ENGL': 'country'})
 
-merged_europe_df = europe.merge(diff_df, left_on='Country', right_on='country', how='left')
+merged_europe_df = europe.merge(diff_df, left_on='country', right_on='country', how='left')
 cols_to_replace_nan = ['temp_col', 'wind_col', 'precipitation_col']
 merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fillna('#d3d3d3')
 
@@ -368,6 +368,7 @@ with col2:
 st.dataframe(Final_diff, use_container_width=True)
 
 chart_type = st.selectbox('Select chart type:', options=['Temperature', 'Wind', 'Precipitation'])
+
 
 chart_dict = {
     'Temperature': charts[0],
