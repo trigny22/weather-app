@@ -9,13 +9,14 @@ import cartopy.io.shapereader as shpreader
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.patches as mpatches
+import numpy as np 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import pandas as pd
+# from slack_sdk import WebClient
+# from slack_sdk.errors import SlackApiError
 import matplotlib.pyplot as plt
 # import io
 # import base64
-import plotly.graph_objs as go
 import streamlit as st
 
 # import requests
@@ -33,18 +34,53 @@ european_capitals = {
     # Add other European capitals as needed
 }
 
+# Initialize empty lists for latitudes and longitudes
+latitudes = []
+longitudes = []
+capitals = []
+countries = []
+
+# Extracting information from the dictionary
+for country, capital_info in european_capitals.items():
+    capital, coordinates = list(capital_info.items())[0]
+    lat, lon = coordinates
+
+    capitals.append(capital)
+    latitudes.append(lat)
+    longitudes.append(lon)
+    countries.append(country)
+
+countries, capitals, latitudes, longitudes
 # Setup the Open-Meteo API client
 cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
 retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
 openmeteo = openmeteo_requests.Client(session=retry_session)
 
-def historical_data(latitude, longitude):
+
+def historical_data(european_capitals):
+    
+        # Initialize empty lists for latitudes and longitudes
+    latitudes = []
+    longitudes = []
+    capitals = []
+    countries = []
+
+    # Extracting information from the dictionary
+    for country, capital_info in european_capitals.items():
+        capital, coordinates = list(capital_info.items())[0]
+        lat, lon = coordinates
+
+        capitals.append(capital)
+        latitudes.append(lat)
+        longitudes.append(lon)
+        countries.append(country)
+
 
     # Define the parameters for the API request
     url = "https://archive-api.open-meteo.com/v1/archive"
     params = {
-        "latitude": latitude,
-        "longitude": longitude,
+        "latitude": latitudes,
+        "longitude": longitudes,
         "start_date": "1980-01-01",
         "end_date": "2019-12-31",
         "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"]
@@ -53,45 +89,73 @@ def historical_data(latitude, longitude):
     # Make the API request
     responses = openmeteo.weather_api(url, params=params)
 
-    # Process the first location
-    response = responses[0]
+    final_df = pd.DataFrame()
 
-    # Process hourly data
-    hourly = response.Hourly()
-    hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
-    hourly_precipitation = hourly.Variables(1).ValuesAsNumpy()
-    hourly_wind_speed_10m = hourly.Variables(2).ValuesAsNumpy()
+    # Iterate through each response
+    for i, response in enumerate(responses):
+        # Process hourly data for the current response
+        hourly = response.Hourly()
+        hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
+        hourly_precipitation = hourly.Variables(1).ValuesAsNumpy()
+        hourly_wind_speed_10m = hourly.Variables(2).ValuesAsNumpy()
 
-    # Create a DataFrame from the hourly data
-    historical = {
-        "date": pd.date_range(
-            start=pd.to_datetime(hourly.Time(), unit="s"),
-            end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
-            freq=pd.Timedelta(seconds=hourly.Interval()),
-            inclusive="left"
-        ),
-        "temperature_2m": hourly_temperature_2m,
-        "precipitation": hourly_precipitation,
-        "wind_speed_10m": hourly_wind_speed_10m
-    }
+        # Create a DataFrame from the hourly data
+        historical = {
+            "date": pd.date_range(
+                start=pd.to_datetime(hourly.Time(), unit="s"),
+                end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
+                freq=pd.Timedelta(seconds=hourly.Interval()),
+                inclusive="left"
+            ),
+            "temperature_2m": hourly_temperature_2m,
+            "precipitation": hourly_precipitation,
+            "wind_speed_10m": hourly_wind_speed_10m,
+            "capital": capitals[i],
+            "country": countries[i],
+            "type": "historical"
+        }
 
-    historical_df = pd.DataFrame(data=historical)
-    historical_df['date'] = pd.to_datetime(historical_df['date'])
-    historical_df['date'] = historical_df['date'].dt.strftime('%m-%d %H:00:00')
+        historical_df = pd.DataFrame(data=historical)
+        historical_df['date'] = pd.to_datetime(historical_df['date'])
+        historical_df['date'] = historical_df['date'].dt.strftime('%m-%d %H:00:00')
 
-    # Calculate the average for each hour
-    average_df = historical_df.groupby('date').mean().reset_index()
+        # Concatenate with the final DataFrame
+        final_df = pd.concat([final_df, historical_df], ignore_index=True)
+        # First, group by 'date' and 'capital' and calculate the mean for numeric columns
+        grouped_numeric = final_df.groupby(['date', 'capital']).mean(numeric_only=True).reset_index()
 
-    return average_df
+        # Next, create a DataFrame with unique combinations of 'capital', 'country', and 'type'
+        unique_capital_info = final_df[['capital', 'country', 'type']].drop_duplicates()
+
+        # Merge the grouped numeric data with the unique capital info
+        final_grouped_df = pd.merge(grouped_numeric, unique_capital_info, on='capital', how='left')
+
+    return final_grouped_df
 
 ###
 
-def weather_forecast(latitude, longitude):
+def weather_forecast(european_capitals):
+    
+    latitudes = []
+    longitudes = []
+    capitals = []
+    countries = []
+
+    # Extracting information from the dictionary
+    for country, capital_info in european_capitals.items():
+        capital, coordinates = list(capital_info.items())[0]
+        lat, lon = coordinates
+
+        capitals.append(capital)
+        latitudes.append(lat)
+        longitudes.append(lon)
+        countries.append(country)
+        
     # Define the parameters for the API request
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
-        "latitude": latitude,
-        "longitude": longitude,
+        "latitude": latitudes,
+        "longitude": longitudes,
         "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"],
         "forecast_days": 14
     }
@@ -99,82 +163,65 @@ def weather_forecast(latitude, longitude):
     # Make the API request
     responses = openmeteo.weather_api(url, params=params)
 
-    # Process the first location
-    response = responses[0]
+    final_df = pd.DataFrame()
 
-    # Process hourly data
-    hourly = response.Hourly()
-    hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
-    hourly_precipitation = hourly.Variables(1).ValuesAsNumpy()
-    hourly_wind_speed_10m = hourly.Variables(2).ValuesAsNumpy()
+    # Iterate through each response
+    for i, response in enumerate(responses):
+        # Process hourly forecast data for the current response
+        hourly = response.Hourly()
+        hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
+        hourly_precipitation = hourly.Variables(1).ValuesAsNumpy()
+        hourly_wind_speed_10m = hourly.Variables(2).ValuesAsNumpy()
 
-    # Create a DataFrame from the hourly data
-    hourly_data = {
-        "date": pd.date_range(
-            start=pd.to_datetime(hourly.Time(), unit="s"),
-            end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
-            freq=pd.Timedelta(seconds=hourly.Interval()),
-            inclusive="left"
-        ),
-        "temperature_2m": hourly_temperature_2m,
-        "precipitation": hourly_precipitation,
-        "wind_speed_10m": hourly_wind_speed_10m
-    }
+        # Create a DataFrame from the hourly forecast data
+        forecast = {
+            "date": pd.date_range(
+                start=pd.to_datetime(hourly.Time(), unit="s"),
+                end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
+                freq=pd.Timedelta(seconds=hourly.Interval()),
+                inclusive="left"
+            ),
+            "temperature_2m": hourly_temperature_2m,
+            "precipitation": hourly_precipitation,
+            "wind_speed_10m": hourly_wind_speed_10m,
+            "capital": capitals[i],
+            "country": countries[i],
+            "type": "forecast"
+        }
 
-    hourly_dataframe = pd.DataFrame(data=hourly_data)
-    hourly_dataframe['date'] = pd.to_datetime(hourly_dataframe['date'])
-    hourly_dataframe['date'] = hourly_dataframe['date'].dt.strftime('%m-%d %H:00:00')
+        forecast_df = pd.DataFrame(data=forecast)
+        forecast_df['date'] = pd.to_datetime(forecast_df['date'])
+        forecast_df['date'] = forecast_df['date'].dt.strftime('%m-%d %H:00:00')
 
-    return hourly_dataframe
+        # Concatenate with the final DataFrame
+        final_df = pd.concat([final_df, forecast_df], ignore_index=True)
+
+    return final_df
 
 ###
 
-def merge_weather_data_for_capitals(capitals):
-    all_data = []
+all_data = []
+forecast_df = weather_forecast(european_capitals)
+historical_df = historical_data(european_capitals)
+historical_df = historical_df[historical_df['date'].isin(forecast_df['date'])]
 
-    for country, capital_info in capitals.items():
-        for capital, coords in capital_info.items():
-            latitude, longitude = coords
-            
-                        # Fetch weather forecast data
-            forecast_df = weather_forecast(latitude, longitude)
-            forecast_df['Capital'] = capital
-            forecast_df['Country'] = country
-            forecast_df['Type'] = 'Forecast'
+# Concatenate historical and forecast data
+combined_df = pd.concat([historical_df, forecast_df])
 
-            # Fetch historical data
-            historical_df = historical_data(latitude, longitude)
-            historical_df['Capital'] = capital
-            historical_df['Country'] = country
-            historical_df['Type'] = 'Historical'
-            historical_df = historical_df[historical_df['date'].isin(forecast_df['date'])]
+all_data.append(combined_df)
 
-            # Concatenate historical and forecast data
-            combined_df = pd.concat([historical_df, forecast_df])
+# Merge all data into a single dataframe
+merged_weather_data = pd.concat(all_data)
 
-            all_data.append(combined_df)
-
-    # Merge all data into a single dataframe
-    merged_df = pd.concat(all_data)
-
-    return merged_df
-
-# Call the function with the european_capitals dictionary
-merged_weather_data = merge_weather_data_for_capitals(european_capitals)
 merged_weather_data['date'] = pd.to_datetime(merged_weather_data['date'], format='%m-%d %H:%M:%S')
 merged_weather_data['date'] = merged_weather_data['date'].apply(lambda dt: dt.replace(year=2023))
 
 
-
-# Example: Display the first few rows of the merged dataframe
-print(merged_weather_data.head())
-
-
 def plot_weather_charts(country, merged_weather_data=merged_weather_data):
     # Filter the merged dataframe for the specified country
-    country_data = merged_weather_data[merged_weather_data['Country'] == country]
-    historical_country = country_data[country_data['Type'] == 'Historical']
-    forecast_country = country_data[country_data['Type'] == 'Forecast']
+    country_data = merged_weather_data[merged_weather_data['country'] == country]
+    historical_country = country_data[country_data['type'] == 'historical']
+    forecast_country = country_data[country_data['type'] == 'forecast']
     historical_country = historical_country.sort_values(by='date')
     forecast_country = forecast_country.sort_values(by='date')
     
@@ -215,7 +262,7 @@ def plot_weather_charts(country, merged_weather_data=merged_weather_data):
     return charts
 
 ###germany forecast###
-# plot_weather_charts("Germany")
+#plot_weather_charts("Germany")
 
 
 
@@ -238,10 +285,10 @@ def value_to_color(value):
     
 
 # Group by 'Country' and 'Type' and then calculate the mean
-grouped_data = merged_weather_data.groupby(['Country', 'Type']).mean(numeric_only=True).reset_index()
+grouped_data = merged_weather_data.groupby(['country', 'type']).mean(numeric_only=True).reset_index()
 
 # Pivot this grouped data to have 'Historical' and 'Forecast' as columns
-pivot_df = grouped_data.pivot(index='Country', columns='Type', values=['temperature_2m', 'wind_speed_10m', 'precipitation'])
+pivot_df = grouped_data.pivot(index='country', columns='type', values=['temperature_2m', 'wind_speed_10m', 'precipitation'])
 
 # Calculate the differences
 pivot_df['temperature_diff'] = pivot_df['temperature_2m']['Forecast'] - pivot_df['temperature_2m']['Historical']
@@ -249,9 +296,9 @@ pivot_df['wind_diff'] = pivot_df['wind_speed_10m']['Forecast'] - pivot_df['wind_
 pivot_df['precipitation_diff'] = pivot_df['precipitation']['Forecast'] - pivot_df['precipitation']['Historical']
 
 # Reset index to make 'Country' a column again and filter only the necessary columns
-diff_df = pivot_df.reset_index()[['Country', 'temperature_diff', 'wind_diff', 'precipitation_diff']]
+diff_df = pivot_df.reset_index()[['country', 'temperature_diff', 'wind_diff', 'precipitation_diff']]
 
-diff_df.columns = ['Country', 'temperature_diff', 'wind_diff', 'precipitation_diff']  # Flatten the MultiIndex columns
+diff_df.columns = ['country', 'temperature_diff', 'wind_diff', 'precipitation_diff']  # Flatten the MultiIndex columns
 diff_df = diff_df.round(1)
 Final_diff = diff_df.copy()
 
@@ -260,9 +307,9 @@ diff_df['wind_col'] = diff_df['wind_diff'].apply(value_to_color)
 diff_df['precipitation_col'] = diff_df['precipitation_diff'].apply(value_to_color)
 ###
 
-europe = europe.rename(columns={'NAME_ENGL': 'Country'})
+europe = europe.rename(columns={'NAME_ENGL': 'country'})
 
-merged_europe_df = europe.merge(diff_df, left_on='Country', right_on='Country', how='left')
+merged_europe_df = europe.merge(diff_df, left_on='Country', right_on='country', how='left')
 cols_to_replace_nan = ['temp_col', 'wind_col', 'precipitation_col']
 merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fillna('#d3d3d3')
 
