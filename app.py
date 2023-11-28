@@ -51,7 +51,7 @@ for country, capital_info in european_capitals.items():
     longitudes.append(lon)
     countries.append(country)
 # Setup the Open-Meteo API client
-cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
+cache_session = requests_cache.CachedSession('.cache', expire_after=360000)
 retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
 openmeteo = openmeteo_requests.Client(session=retry_session)
 
@@ -352,14 +352,27 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 # Initialize Dash app
 
 # Set up the Streamlit layout
+
+@st.cache(allow_output_mutation=True)
+def get_cached_charts(countries):
+    chart_dict = {}
+    for country in countries:
+        charts = plot_weather_charts(country)
+        chart_dict[country] = {
+            'Temperature': charts[0],
+            'Wind': charts[1],
+            'Precipitation': charts[2],
+        }
+    return chart_dict
+
 st.title('Weather-App Dashboard')
 
 # Get today's date in the format of 'YYYYMMDD'
-todays_date =  str(datetime.date.today().strftime("%Y%m%d"))
-# Format the URL with today's date
+todays_date = str(datetime.date.today().strftime("%Y%m%d"))
+
+# Format the URLs with today's date
 image_url1 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{todays_date}06/gfs_T2ma_eu_1.png'
 image_url2 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{todays_date}06/gfs_mslp_pwata_eu_2.png'
-
 
 # Display images in columns
 col1, col2 = st.columns(2)
@@ -369,20 +382,17 @@ with col1:
 with col2:
     st.image(image_url2, caption='Precipitation Forecasts', use_column_width=True)
 
+# Assume Final_diff is defined earlier in the script
 st.dataframe(Final_diff, use_container_width=True)
 
+# Assume countries is a list of country names
 default_index = countries.index('Germany') if 'Germany' in countries else 0
-select_country = st.selectbox('Select chart type:', options=countries, index=default_index)
+select_country = st.selectbox('Select a country:', options=countries, index=default_index)
 
-charts = plot_weather_charts(select_country)
+# Cache all charts for all countries
+all_charts = get_cached_charts(countries)
+
 chart_type = st.selectbox('Select chart type:', options=['Temperature', 'Wind', 'Precipitation'])
 
-
-chart_dict = {
-    'Temperature': charts[0],
-    'Wind': charts[1],
-    'Precipitation': charts[2],
-}
-
 # Display the selected chart
-st.plotly_chart(chart_dict[chart_type], use_container_width=True)
+st.plotly_chart(all_charts[select_country][chart_type], use_container_width=True)
