@@ -7,3 +7,4 @@ pandas
 retry_requests
 cartopy
 plotly
+datetime
