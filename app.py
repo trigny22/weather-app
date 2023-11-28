@@ -51,10 +51,9 @@ for country, capital_info in european_capitals.items():
     longitudes.append(lon)
     countries.append(country)
 # Setup the Open-Meteo API client
-cache_session = requests_cache.CachedSession('.cache', expire_after=360000)
+cache_session = requests_cache.CachedSession('.cache', expire_after=36000)
 retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
 openmeteo = openmeteo_requests.Client(session=retry_session)
-
 
 def historical_data(european_capitals):
     
@@ -215,7 +214,7 @@ merged_weather_data = pd.concat(all_data)
 merged_weather_data['date'] = pd.to_datetime(merged_weather_data['date'], format='%m-%d %H:%M:%S')
 merged_weather_data['date'] = merged_weather_data['date'].apply(lambda dt: dt.replace(year=2023))
 
-
+@st.cache_data
 def plot_weather_charts(country, merged_weather_data=merged_weather_data):
     # Filter the merged dataframe for the specified country
     country_data = merged_weather_data[merged_weather_data['country'] == country]
@@ -353,7 +352,7 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 
 # Set up the Streamlit layout
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data(ttl=3600)
 def get_cached_charts(countries):
     chart_dict = {}
     for country in countries:
