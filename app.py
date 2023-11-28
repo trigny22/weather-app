@@ -49,8 +49,6 @@ for country, capital_info in european_capitals.items():
     latitudes.append(lat)
     longitudes.append(lon)
     countries.append(country)
-
-countries, capitals, latitudes, longitudes
 # Setup the Open-Meteo API client
 cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
 retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
@@ -352,8 +350,6 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 # Final_diff
 # Initialize Dash app
 
-charts = plot_weather_charts('Germany')
-
 # Set up the Streamlit layout
 st.title('Weather-App Dashboard')
 
@@ -367,6 +363,8 @@ with col2:
 
 st.dataframe(Final_diff, use_container_width=True)
 
+select_country = st.selectbox('Select chart type:', options=countries)
+charts = plot_weather_charts(select_country)
 chart_type = st.selectbox('Select chart type:', options=['Temperature', 'Wind', 'Precipitation'])
 
 
