@@ -358,7 +358,7 @@ st.title('Weather-App Dashboard')
 todays_date =  str(datetime.date.today().strftime("%Y%m%d"))
 # Format the URL with today's date
 image_url1 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{todays_date}06/gfs_T2ma_eu_1.png'
-image_url2 = f'https://www.tropicaltidbits.com/analysis/models/?model=gfs&region=eu&pkg=mslp_pwata&runtime={todays_date}06&fh=6'
+image_url2 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{todays_date}06/gfs_mslp_pwata_eu_2.png'
 
 
 # Display images in columns
