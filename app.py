@@ -356,7 +356,7 @@ st.title('Weather-App Dashboard')
 # Display images in columns
 col1, col2 = st.columns(2)
 with col1:
-    st.image('http://wxmaps.org/pix/temp4.png', caption='Temperature Forecasts', use_column_width=True)
+    st.image('https://charts.ecmwf.int/streaming/20231127-2000/3b/render-worker-commands-76898cbbf-rqq8t-6fe5cac1a363ec1525f54343b6cc9fd8-JIJqOe.png', caption='Temperature Forecasts', use_column_width=True)
 
 with col2:
     st.image('http://wxmaps.org/pix/prec4.png', caption='Precipitation Forecasts', use_column_width=True)
