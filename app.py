@@ -1,3 +1,4 @@
+import datetime
 from matplotlib import pyplot as plt
 import openmeteo_requests
 import geopandas as gpd
@@ -353,13 +354,21 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 # Set up the Streamlit layout
 st.title('Weather-App Dashboard')
 
+# Get today's date in the format of 'YYYYMMDD'
+todays_date = datetime.now().strftime('%Y%m%d')
+
+# Format the URL with today's date
+image_url1 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{todays_date}06/gfs_T2ma_eu_1.png'
+image_url2 = f'https://www.tropicaltidbits.com/analysis/models/?model=gfs&region=eu&pkg=mslp_pwata&runtime={todays_date}06&fh=6'
+
+
 # Display images in columns
 col1, col2 = st.columns(2)
 with col1:
-    st.image('https://charts.ecmwf.int/streaming/20231127-2000/3b/render-worker-commands-76898cbbf-rqq8t-6fe5cac1a363ec1525f54343b6cc9fd8-JIJqOe.png', caption='Temperature Forecasts', use_column_width=True)
+    st.image(image_url1, caption='Temperature Forecasts', use_column_width=True)
 
 with col2:
-    st.image('http://wxmaps.org/pix/prec4.png', caption='Precipitation Forecasts', use_column_width=True)
+    st.image(image_url2, caption='Precipitation Forecasts', use_column_width=True)
 
 st.dataframe(Final_diff, use_container_width=True)
 
