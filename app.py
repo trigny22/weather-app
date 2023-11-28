@@ -363,7 +363,9 @@ with col2:
 
 st.dataframe(Final_diff, use_container_width=True)
 
-select_country = st.selectbox('Select chart type:', options=countries)
+default_index = countries.index('Germany') if 'Germany' in countries else 0
+select_country = st.selectbox('Select chart type:', options=countries, index=default_index)
+
 charts = plot_weather_charts(select_country)
 chart_type = st.selectbox('Select chart type:', options=['Temperature', 'Wind', 'Precipitation'])
 
