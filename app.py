@@ -32,7 +32,9 @@ european_capitals = {
     "United Kingdom": {"London": (51.5074, -0.1278)},
     "Iceland": {"Reykjavik": (64.1466, -21.9426)},
     "Sweden": {"Stockholm": (59.3293, 18.0686)},
-    # Add other European capitals as needed
+    "Poland": {"Warsaw": (52.2297, 21.0122)},
+    "Ukraine": {"Kyiv": (50.4501, 30.5234)},
+    "Greece": {"Athens": (37.9838, 23.7275)}
 }
 
 # Initialize empty lists for latitudes and longitudes
@@ -292,14 +294,18 @@ pivot_df = grouped_data.pivot(index='country', columns='type', values=['temperat
 pivot_df['temperature_diff'] = pivot_df['temperature_2m']['forecast'] - pivot_df['temperature_2m']['historical']
 pivot_df['wind_diff'] = pivot_df['wind_speed_10m']['forecast'] - pivot_df['wind_speed_10m']['historical']
 pivot_df['precipitation_diff'] = pivot_df['precipitation']['forecast'] - pivot_df['precipitation']['historical']
-
+pivot_df['precipitation_diff'] *= 10
 # Reset index to make 'Country' a column again and filter only the necessary columns
 diff_df = pivot_df.reset_index()[['country', 'temperature_diff', 'wind_diff', 'precipitation_diff']]
 
 diff_df.columns = ['country', 'temperature_diff', 'wind_diff', 'precipitation_diff']  # Flatten the MultiIndex columns
 diff_df = diff_df.round(1)
 Final_diff = diff_df.copy()
-
+Final_diff.rename(columns={
+    "temperature_diff": "Temperature Difference C",
+    "wind_diff": "Wind Difference km/h",
+    "precipitation_diff": "Precipitation Differnce mm"
+}, inplace=True)
 diff_df['temp_col'] = diff_df['temperature_diff'].apply(value_to_color)
 diff_df['wind_col'] = diff_df['wind_diff'].apply(value_to_color)
 diff_df['precipitation_col'] = diff_df['precipitation_diff'].apply(value_to_color)
