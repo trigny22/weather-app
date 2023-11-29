@@ -366,12 +366,12 @@ def get_cached_charts(countries):
 
 st.title('Weather-App Dashboard')
 
-# Get today's date in the format of 'YYYYMMDD'
-todays_date = str(datetime.date.today().strftime("%Y%m%d"))
+yesterday = datetime.date.today() - datetime.timedelta(days=1)
+yesterday_str = yesterday.strftime("%Y%m%d")
 
 # Format the URLs with today's date
-image_url1 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{todays_date}06/gfs_T2ma_eu_1.png'
-image_url2 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{todays_date}06/gfs_mslp_pwata_eu_2.png'
+image_url1 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{yesterday_str}06/gfs_T2ma_eu_1.png'
+image_url2 = f'https://www.tropicaltidbits.com/analysis/models/gfs/{yesterday_str}06/gfs_mslp_pwata_eu_2.png'
 
 # Display images in columns
 col1, col2 = st.columns(2)
