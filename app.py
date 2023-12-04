@@ -216,7 +216,6 @@ merged_weather_data = pd.concat(all_data)
 merged_weather_data['date'] = pd.to_datetime(merged_weather_data['date'], format='%m-%d %H:%M:%S')
 merged_weather_data['date'] = merged_weather_data['date'].apply(lambda dt: dt.replace(year=2023))
 
-@st.cache_data
 def plot_weather_charts(country, merged_weather_data=merged_weather_data):
     # Filter the merged dataframe for the specified country
     country_data = merged_weather_data[merged_weather_data['country'] == country]
@@ -358,7 +357,6 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 
 # Set up the Streamlit layout
 
-@st.cache_data(ttl=3600)
 def get_cached_charts(countries):
     chart_dict = {}
     for country in countries:
