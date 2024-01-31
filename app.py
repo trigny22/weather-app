@@ -427,19 +427,8 @@ st.dataframe(Final_diff, use_container_width=True)
 # Cache all charts for all countries
 all_charts = chart_dict
 
-# Assuming 'chart_dict' is structured like: chart_dict[country][chart_type]
+st.plotly_chart(all_charts[country]['Temperature'], use_container_width=True)
 
-# Define three columns
-col1, col2, col3 = st.columns(3)
+st.plotly_chart(all_charts[country]['Wind'], use_container_width=True)
 
-# Display the Temperature chart in the first column
-with col1:
-    st.plotly_chart(all_charts[country]['Temperature'], use_container_width=True)
-
-# Display the Wind chart in the second column
-with col2:
-    st.plotly_chart(all_charts[country]['Wind'], use_container_width=True)
-
-# Display the Precipitation chart in the third column
-with col3:
-    st.plotly_chart(all_charts[country]['Precipitation'], use_container_width=True)
+st.plotly_chart(all_charts[country]['Precipitation'], use_container_width=True)
