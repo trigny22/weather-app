@@ -427,7 +427,19 @@ st.dataframe(Final_diff, use_container_width=True)
 # Cache all charts for all countries
 all_charts = chart_dict
 
-chart_type = st.selectbox('Select chart type:', options=['Temperature', 'Wind', 'Precipitation'])
+# Assuming 'chart_dict' is structured like: chart_dict[country][chart_type]
 
-# Display the selected chart
-st.plotly_chart(all_charts[country][chart_type], use_container_width=True)
+# Define three columns
+col1, col2, col3 = st.beta_columns(3)
+
+# Display the Temperature chart in the first column
+with col1:
+    st.plotly_chart(all_charts[country]['Temperature'], use_container_width=True)
+
+# Display the Wind chart in the second column
+with col2:
+    st.plotly_chart(all_charts[country]['Wind'], use_container_width=True)
+
+# Display the Precipitation chart in the third column
+with col3:
+    st.plotly_chart(all_charts[country]['Precipitation'], use_container_width=True)
