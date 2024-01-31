@@ -396,17 +396,14 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 
 # Set up the Streamlit layout
 
-@st.cache_data(ttl=3600)
-def get_cached_charts(countries):
-    chart_dict = {}
-    for country in countries:
-        charts = plot_weather_charts(country)
-        chart_dict[country] = {
-            'Temperature': charts[0],
-            'Wind': charts[1],
-            'Precipitation': charts[2],
-        }
-    return chart_dict
+chart_dict = {}
+country = "Europe"
+charts = plot_weather_charts(country)
+chart_dict[country] = {
+    'Temperature': charts[0],
+    'Wind': charts[1],
+    'Precipitation': charts[2],
+}
 
 st.title('Weather-App Dashboard')
 
@@ -428,14 +425,10 @@ with col2:
 # Assume Final_diff is defined earlier in the script
 st.dataframe(Final_diff, use_container_width=True)
 
-# Assume countries is a list of country names
-default_index = countries.index('Europe') if 'Europe' in countries else 0
-select_country = st.selectbox('Select a country:', options=countries, index=default_index)
-
 # Cache all charts for all countries
-all_charts = get_cached_charts(countries)
+all_charts = chart_dict
 
 chart_type = st.selectbox('Select chart type:', options=['Temperature', 'Wind', 'Precipitation'])
 
 # Display the selected chart
-st.plotly_chart(all_charts[select_country][chart_type], use_container_width=True)
+st.plotly_chart(all_charts[country][chart_type], use_container_width=True)
