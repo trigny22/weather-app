@@ -214,7 +214,7 @@ all_data.append(combined_df)
 merged_weather_data = pd.concat(all_data)
 
 merged_weather_data['date'] = pd.to_datetime(merged_weather_data['date'], format='%m-%d %H:%M:%S')
-merged_weather_data['date'] = merged_weather_data['date'].apply(lambda dt: dt.replace(year=2023))
+merged_weather_data['date'] = merged_weather_data['date'].apply(lambda dt: dt.replace(year=2024))
 
 country_data = merged_weather_data[merged_weather_data['country'] == country]
 country_data.groupby(['date', 'type']).agg({
@@ -282,29 +282,6 @@ def plot_weather_charts(country):
 
     return charts
 
-###germany forecast###
-#plot_weather_charts("Germany")
-
-
-
-###
-def value_to_color(value):
-    if value < -2.5:
-        return '#3f00ff'  # darker shade of blue
-    elif -2.5 <= value < -1.5:
-        return '#0000ff'  # blue
-    elif -1.5 <= value < -0.5:
-        return '#4169e1'  # royal blue
-    elif -0.5 <= value < 0.5:
-        return '#d3d3d3'  # light grey
-    elif 0.5 <= value < 1.5:
-        return '#ff6666'  # light red
-    elif 1.5 <= value < 2.5:
-        return '#ff0000'  # red
-    else:
-        return '#8b0000'  # dark red
-    
-
 # Group by 'Country' and 'Type' and then calculate the mean
 grouped_data = merged_weather_data.groupby(['country', 'type']).mean(numeric_only=True).reset_index()
 
@@ -320,7 +297,6 @@ pivot_df['precipitation_diff'] *= 10
 diff_df = pivot_df.reset_index()[['country', 'temperature_diff', 'wind_diff', 'precipitation_diff']]
 
 diff_df.columns = ['country', 'temperature_diff', 'wind_diff', 'precipitation_diff']  # Flatten the MultiIndex columns
-diff_df = diff_df.round(1)
 Final_diff = diff_df.copy()
 
 eu_temp = Final_diff['temperature_diff'].mean()
@@ -342,10 +318,9 @@ new_row = pd.DataFrame({
 })
 
 Final_diff = pd.concat([Final_diff, new_row], ignore_index=True)
+Final_diff = Final_diff.round(1)
 
-diff_df['temp_col'] = diff_df['temperature_diff'].apply(value_to_color)
-diff_df['wind_col'] = diff_df['wind_diff'].apply(value_to_color)
-diff_df['precipitation_col'] = diff_df['precipitation_diff'].apply(value_to_color)
+
 ###
 
 europe = europe.rename(columns={'NAME_ENGL': 'country'})
