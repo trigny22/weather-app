@@ -430,7 +430,7 @@ all_charts = chart_dict
 # Assuming 'chart_dict' is structured like: chart_dict[country][chart_type]
 
 # Define three columns
-col1, col2, col3 = st.beta_columns(3)
+col1, col2, col3 = st.columns(3)
 
 # Display the Temperature chart in the first column
 with col1:
