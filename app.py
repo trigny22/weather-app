@@ -34,8 +34,7 @@ european_capitals = {
     "Sweden": {"Stockholm": (59.3293, 18.0686)},
     "Poland": {"Warsaw": (52.2297, 21.0122)},
     "Ukraine": {"Kyiv": (50.4501, 30.5234)},
-    "Greece": {"Athens": (37.9838, 23.7275)},
-    "Europe": {"Europe": (52.5200, 13.4050)}
+    "Greece": {"Athens": (37.9838, 23.7275)}
 }
 
 # Initialize empty lists for latitudes and longitudes
