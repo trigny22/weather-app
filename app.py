@@ -207,6 +207,8 @@ historical_df = historical_df[historical_df['date'].isin(forecast_df['date'])]
 
 # Concatenate historical and forecast data
 combined_df = pd.concat([historical_df, forecast_df])
+combined_df['date'] = pd.to_datetime(combined_df['date'], format='%m-%d %H:%M:%S')
+combined_df['date'] = combined_df['date'].apply(lambda dt: dt.replace(year=2024))
 
 all_data.append(combined_df)
 
