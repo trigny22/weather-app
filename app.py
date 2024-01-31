@@ -320,7 +320,7 @@ new_row = pd.DataFrame({
     'Precipitation Difference mm': [eu_rain]
 })
 
-Final_diff = Final_diff.append(new_row, ignore_index=True)
+Final_diff = pd.concat([Final_diff, new_row], ignore_index=True)
 
 diff_df['temp_col'] = diff_df['temperature_diff'].apply(value_to_color)
 diff_df['wind_col'] = diff_df['wind_diff'].apply(value_to_color)
