@@ -429,7 +429,7 @@ with col2:
 st.dataframe(Final_diff, use_container_width=True)
 
 # Assume countries is a list of country names
-default_index = countries.index('Germany') if 'Germany' in countries else 0
+default_index = countries.index('Europe') if 'Europe' in countries else 0
 select_country = st.selectbox('Select a country:', options=countries, index=default_index)
 
 # Cache all charts for all countries
