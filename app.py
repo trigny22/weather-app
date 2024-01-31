@@ -34,7 +34,8 @@ european_capitals = {
     "Sweden": {"Stockholm": (59.3293, 18.0686)},
     "Poland": {"Warsaw": (52.2297, 21.0122)},
     "Ukraine": {"Kyiv": (50.4501, 30.5234)},
-    "Greece": {"Athens": (37.9838, 23.7275)}
+    "Greece": {"Athens": (37.9838, 23.7275)},
+    "Europe": {"Europe": (52.5200, 13.4050)}
 }
 
 # Initialize empty lists for latitudes and longitudes
@@ -216,10 +217,31 @@ merged_weather_data = pd.concat(all_data)
 merged_weather_data['date'] = pd.to_datetime(merged_weather_data['date'], format='%m-%d %H:%M:%S')
 merged_weather_data['date'] = merged_weather_data['date'].apply(lambda dt: dt.replace(year=2023))
 
+country_data = merged_weather_data[merged_weather_data['country'] == country]
+country_data.groupby(['date', 'type']).agg({
+    'temperature_2m': 'mean',
+    'precipitation': 'mean',
+    'wind_speed_10m': 'mean'
+}).reset_index()
+
+grouped = country_data.groupby(['date', 'type']).agg({
+    'temperature_2m': 'mean',
+    'precipitation': 'mean',
+    'wind_speed_10m': 'mean'
+}).reset_index()
+
+# Adding 'country' and 'capital' columns with the value 'Europe'
+grouped['country'] = 'Europe'
+grouped['capital'] = 'Europe'
+
+grouped = grouped[['date', 'capital', 'temperature_2m', 'precipitation', 'wind_speed_10m', 'country', 'type']]
+
+country_data = pd.concat([country_data, grouped], ignore_index=True)
+
+
 @st.cache_data
-def plot_weather_charts(country, merged_weather_data=merged_weather_data):
+def plot_weather_charts(country):
     # Filter the merged dataframe for the specified country
-    country_data = merged_weather_data[merged_weather_data['country'] == country]
     historical_country = country_data[country_data['type'] == 'historical']
     forecast_country = country_data[country_data['type'] == 'forecast']
     historical_country = historical_country.sort_values(by='date')
