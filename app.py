@@ -327,8 +327,6 @@ europe = europe.rename(columns={'NAME_ENGL': 'country'})
 
 merged_europe_df = europe.merge(diff_df, left_on='country', right_on='country', how='left')
 cols_to_replace_nan = ['temp_col', 'wind_col', 'precipitation_col']
-merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fillna('#d3d3d3')
-
 
 ###
 
