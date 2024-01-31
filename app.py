@@ -216,6 +216,7 @@ merged_weather_data = pd.concat(all_data)
 merged_weather_data['date'] = pd.to_datetime(merged_weather_data['date'], format='%m-%d %H:%M:%S')
 merged_weather_data['date'] = merged_weather_data['date'].apply(lambda dt: dt.replace(year=2023))
 
+@st.cache_data
 def plot_weather_charts(country, merged_weather_data=merged_weather_data):
     # Filter the merged dataframe for the specified country
     country_data = merged_weather_data[merged_weather_data['country'] == country]
@@ -300,11 +301,27 @@ diff_df = pivot_df.reset_index()[['country', 'temperature_diff', 'wind_diff', 'p
 diff_df.columns = ['country', 'temperature_diff', 'wind_diff', 'precipitation_diff']  # Flatten the MultiIndex columns
 diff_df = diff_df.round(1)
 Final_diff = diff_df.copy()
+
+eu_temp = Final_diff['temperature_diff'].mean()
+eu_wind = Final_diff['wind_diff'].mean()
+eu_rain = Final_diff['precipitation_diff'].mean()
+
 Final_diff.rename(columns={
     "temperature_diff": "Temperature Difference C",
     "wind_diff": "Wind Difference km/h",
-    "precipitation_diff": "Precipitation Differnce mm"
+    "precipitation_diff": "Precipitation Difference mm"
 }, inplace=True)
+
+# Create a new DataFrame with the averages
+new_row = pd.DataFrame({
+    'country': ['Europe'],
+    'Temperature Difference C': [eu_temp],
+    'Wind Difference km/h': [eu_wind],
+    'Precipitation Difference mm': [eu_rain]
+})
+
+Final_diff = Final_diff.append(new_row, ignore_index=True)
+
 diff_df['temp_col'] = diff_df['temperature_diff'].apply(value_to_color)
 diff_df['wind_col'] = diff_df['wind_diff'].apply(value_to_color)
 diff_df['precipitation_col'] = diff_df['precipitation_diff'].apply(value_to_color)
@@ -357,6 +374,7 @@ merged_europe_df[cols_to_replace_nan] = merged_europe_df[cols_to_replace_nan].fi
 
 # Set up the Streamlit layout
 
+@st.cache_data(ttl=3600)
 def get_cached_charts(countries):
     chart_dict = {}
     for country in countries:
