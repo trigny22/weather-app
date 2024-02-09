@@ -239,8 +239,6 @@ grouped = grouped[['date', 'capital', 'temperature_2m', 'precipitation', 'wind_s
 
 country_data = pd.concat([country_data, grouped], ignore_index=True)
 
-
-@st.cache_data
 def plot_weather_charts(country):
     # Filter the merged dataframe for the specified country
     historical_country = country_data[country_data['type'] == 'historical']
