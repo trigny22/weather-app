@@ -207,8 +207,10 @@ historical_df = historical_df[historical_df['date'].isin(forecast_df['date'])]
 
 # Concatenate historical and forecast data
 combined_df = pd.concat([historical_df, forecast_df])
-combined_df['date'] = pd.to_datetime(combined_df['date'], format='%m-%d %H:%M:%S')
-combined_df['date'] = combined_df['date'].apply(lambda dt: dt.replace(year=2024))
+combined_df['date'] = '2024' + '-' + combined_df['date']
+
+combined_df['date'] = pd.to_datetime(combined_df['date'])
+# combined_df['date'] = combined_df['date'].apply(lambda dt: dt.replace(year=2024))
 
 all_data.append(combined_df)
 
@@ -239,6 +241,8 @@ grouped = grouped[['date', 'capital', 'temperature_2m', 'precipitation', 'wind_s
 
 country_data = pd.concat([country_data, grouped], ignore_index=True)
 
+
+@st.cache_data
 def plot_weather_charts(country):
     # Filter the merged dataframe for the specified country
     historical_country = country_data[country_data['type'] == 'historical']
