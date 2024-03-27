@@ -81,7 +81,7 @@ def historical_data(european_capitals):
     params = {
         "latitude": latitudes,
         "longitude": longitudes,
-        "start_date": "1980-01-01",
+        "start_date": "2010-01-01",
         "end_date": "2019-12-31",
         "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"]
     }
