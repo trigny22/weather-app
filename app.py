@@ -251,7 +251,7 @@ def plot_weather_charts(country):
     charts = []
  # Temperature forecast chart
     fig_temp, ax_temp = plt.subplots()
-    ax_temp.plot(historical_country['date'], historical_country['temperature_2m'], label='1990-2020 Historical', color='orange')
+    ax_temp.plot(historical_country['date'], historical_country['temperature_2m'], label='2010-2020 Historical', color='orange')
     ax_temp.plot(forecast_country['date'], forecast_country['temperature_2m'], label='Forecast', color='blue')
     ax_temp.set_title(f'Temperature in {country}: Historical vs Forecast')
     ax_temp.set_ylabel('Temperature (2m)')
@@ -260,7 +260,7 @@ def plot_weather_charts(country):
 
     # Wind speed forecast chart
     fig_wind, ax_wind = plt.subplots()
-    ax_wind.plot(historical_country['date'], historical_country['wind_speed_10m'], label='1990-2020 Historical', color='orange')
+    ax_wind.plot(historical_country['date'], historical_country['wind_speed_10m'], label='2010-2020 Historical', color='orange')
     ax_wind.plot(forecast_country['date'], forecast_country['wind_speed_10m'], label='Forecast', color='blue')
     ax_wind.set_title(f'Wind Speed in {country}: Historical vs Forecast')
     ax_wind.set_ylabel('Wind Speed (10m)')
@@ -269,7 +269,7 @@ def plot_weather_charts(country):
 
     # Precipitation forecast chart
     fig_precip, ax_precip = plt.subplots()
-    ax_precip.plot(historical_country['date'], historical_country['precipitation'], label='1990-2020 Historical', color='orange')
+    ax_precip.plot(historical_country['date'], historical_country['precipitation'], label='2010-2020 Historical', color='orange')
     ax_precip.plot(forecast_country['date'], forecast_country['precipitation'], label='Forecast', color='blue')
     ax_precip.set_title(f'Precipitation in {country}: Historical vs Forecast')
     ax_precip.set_ylabel('Precipitation')
